@@ -1,12 +1,9 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using System.IO;
+using System.Threading;
 using Autofac.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace BorrowIt.Notifications
 {
@@ -14,15 +11,33 @@ namespace BorrowIt.Notifications
     {
         public static void Main(string[] args)
         {
-            CreateHostBuilder(args).Build().Run();
-        }
-
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
-                .UseServiceProviderFactory(new AutofacServiceProviderFactory())
-                .ConfigureWebHostDefaults(webBuilder =>
+            var failuresCount = 0;
+            while (failuresCount <= 10)
+            {
+                try
                 {
-                    webBuilder.UseStartup<Startup>();
-                });
+                    var host = Host.CreateDefaultBuilder(args)
+                        .UseServiceProviderFactory(new AutofacServiceProviderFactory())
+                        .ConfigureWebHostDefaults(webHostBuilder => {
+                            webHostBuilder
+                                .UseContentRoot(Directory.GetCurrentDirectory())
+                                .UseIISIntegration()
+                                .UseStartup<Startup>();
+                        })
+                        .Build();
+                    host.Run();
+                    return;
+                }
+                catch (Exception e)
+                {
+                    if (!e.Source.Contains("RabbitMQ"))
+                    {
+                        throw;
+                    }
+                    failuresCount++;
+                    Thread.Sleep(30000);
+                }
+            }
+        }
     }
 }
