@@ -5,7 +5,7 @@ WORKDIR /app
 COPY . ./
 
 # Copy csproj and restore as distinct layers
-RUN dotnet restore --configfile ./nuget.config ./BorrowIt.Notifications/BorrowIt.Notifications.csproj
+RUN dotnet restore ./BorrowIt.Notifications/BorrowIt.Notifications.csproj
 RUN dotnet publish -c Release -o out
 
 # Build runtime image
